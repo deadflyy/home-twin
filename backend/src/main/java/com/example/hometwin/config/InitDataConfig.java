@@ -28,8 +28,8 @@ public class InitDataConfig {
     private void initRooms() {
         if (roomRepository.count() == 0) {
             List<Room> rooms = List.of(
-                new Room("room-001", "主卧", "🏠", "#4A90D9", null, null),
-                new Room("room-002", "次卧", "🛏️", "#67C23A", null, null),
+                new Room("room-001", "主卧(卧室B)", "🏠", "#4A90D9", null, null),
+                new Room("room-002", "次卧(卧室A)", "🛏️", "#67C23A", null, null),
                 new Room("room-003", "客厅", "🛋️", "#E6A23C", null, null),
                 new Room("room-004", "餐厅", "🥘", "#F56C6C", null, null),
                 new Room("room-005", "厨房", "🍳", "#909399", null, null),
