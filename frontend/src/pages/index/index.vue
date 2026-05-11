@@ -31,89 +31,48 @@
     <view class="room-section">
       <view class="section-header">
         <text class="section-title">户型图</text>
-        <text class="section-subtitle">点击房间查看物品</text>
+        <text class="section-subtitle">点击光点进入房间</text>
       </view>
 
-      <!-- 户型图精确布局 -->
-      <view class="floor-plan-wrapper">
-        <view class="floor-plan">
-          <!-- 厨房 L型: 左上区域 -->
-          <view class="room kitchen-top" @click="goToRoom('room-005')">
-            <view class="room-content">
-              <text class="room-icon-text">🍳</text>
-              <text class="room-name-text">厨房</text>
-              <text class="room-area">8.4m²</text>
-              <text class="room-items">{{ getRoomItemCount('room-005') }}件</text>
-            </view>
-          </view>
-          <view class="room kitchen-bottom" @click="goToRoom('room-005')">
-            <view class="room-content">
-              <text class="room-icon-text">🍳</text>
-            </view>
-          </view>
+      <view class="fp-wrapper" :style="{ height: wrapperH + 'px' }">
+        <view class="fp-scaler" :style="{ transform: 'scale(' + fpScale + ')' }">
+          <view class="fp-container">
+            <view class="fp-bg" />
 
-          <!-- 卫生间: 左中 -->
-          <view class="room bathroom" @click="goToRoom('room-006')">
-            <view class="room-content">
-              <text class="room-icon-text">🚽</text>
-              <text class="room-name-text">卫生间</text>
-              <text class="room-area">4.4m²</text>
-              <text class="room-items">{{ getRoomItemCount('room-006') }}件</text>
-            </view>
-          </view>
+            <view
+              v-for="marker in markers"
+              :key="marker.id"
+              class="fp-marker"
+              :class="{ 'is-active': activeMarker === marker.id }"
+              :style="{ left: marker.cx + '%', top: marker.cy + '%', '--m-color': marker.color }"
+              @click="goToRoom(marker.id)"
+              @mouseenter="activeMarker = marker.id"
+              @mouseleave="activeMarker = ''"
+            >
+              <view class="marker-pulse" />
+              <view class="marker-dot" />
+              <view class="marker-label">
+                <text class="marker-icon">{{ marker.icon }}</text>
+                <text class="marker-name">{{ marker.name }}</text>
+                <text class="marker-count">{{ getRoomItemCount(marker.id) }}件</text>
+              </view>
 
-          <!-- 主卧(卧室B): 左下 -->
-          <view class="room bedroom-b" @click="goToRoom('room-001')">
-            <view class="room-content">
-              <text class="room-icon-text">🏠</text>
-              <text class="room-name-text">主卧</text>
-              <text class="room-area">13.8m²</text>
-              <text class="room-items">{{ getRoomItemCount('room-001') }}件</text>
-            </view>
-          </view>
-
-          <!-- 阳台: 最下方 -->
-          <view class="room balcony" @click="goToRoom('room-007')">
-            <view class="room-content">
-              <text class="room-icon-text">🌳</text>
-              <text class="room-name-text">阳台</text>
-              <text class="room-area">8.5m²</text>
-              <text class="room-items">{{ getRoomItemCount('room-007') }}件</text>
-            </view>
-          </view>
-
-          <!-- 入口/过道 -->
-          <view class="hallway">
-            <text class="hallway-text">入口</text>
-          </view>
-
-          <!-- 餐厅: 中上 -->
-          <view class="room dining" @click="goToRoom('room-004')">
-            <view class="room-content">
-              <text class="room-icon-text">🥘</text>
-              <text class="room-name-text">餐厅</text>
-              <text class="room-area">9.2m²</text>
-              <text class="room-items">{{ getRoomItemCount('room-004') }}件</text>
-            </view>
-          </view>
-
-          <!-- 客厅: 中下 -->
-          <view class="room living" @click="goToRoom('room-003')">
-            <view class="room-content">
-              <text class="room-icon-text">🛋️</text>
-              <text class="room-name-text">客厅</text>
-              <text class="room-area">16.6m²</text>
-              <text class="room-items">{{ getRoomItemCount('room-003') }}件</text>
-            </view>
-          </view>
-
-          <!-- 次卧(卧室A): 右侧 -->
-          <view class="room bedroom-a" @click="goToRoom('room-002')">
-            <view class="room-content">
-              <text class="room-icon-text">🛏️</text>
-              <text class="room-name-text">次卧</text>
-              <text class="room-area">10.4m²</text>
-              <text class="room-items">{{ getRoomItemCount('room-002') }}件</text>
+              <view v-if="activeMarker === marker.id" class="marker-tip">
+                <text class="tip-name">{{ marker.name }}</text>
+                <view class="tip-row">
+                  <text class="tip-k">面积</text>
+                  <text class="tip-v">{{ marker.area }}m²</text>
+                </view>
+                <view class="tip-row">
+                  <text class="tip-k">物品</text>
+                  <text class="tip-v">{{ getRoomItemCount(marker.id) }}件</text>
+                </view>
+                <view class="tip-row" v-if="marker.categories">
+                  <text class="tip-k">分类</text>
+                  <text class="tip-v">{{ marker.categories }}</text>
+                </view>
+                <text class="tip-go">点击查看 →</text>
+              </view>
             </view>
           </view>
         </view>
@@ -150,9 +109,72 @@
 import { ref, onMounted, computed } from 'vue'
 import { getRooms, getPersons, type Room, type Person } from '@/api'
 
+const PLAN_W = 1080
+const PLAN_H = 829
+
+interface Marker {
+  id: string
+  name: string
+  icon: string
+  area: number
+  color: string
+  categories: string
+  cx: number
+  cy: number
+}
+
+const markers: Marker[] = [
+  {
+    id: 'room-005', name: '', icon: '🍳', area: 8.4,
+    color: '#E89A50', categories: '厨具、调料、餐具',
+    cx: 26.8, cy: 19.8,
+  },
+  {
+    id: 'room-006', name: '', icon: '🚿', area: 4.4,
+    color: '#64A0DC', categories: '洗浴用品、清洁工具',
+    cx: 33.2, cy: 33.5,
+  },
+  {
+    id: 'room-001', name: '', icon: '🛏️', area: 13.8,
+    color: '#A078C8', categories: '衣物、床品、收纳',
+    cx: 33.2, cy: 57.5,
+  },
+  {
+    id: 'room-004', name: '', icon: '🍽️', area: 9.2,
+    color: '#D2AA5A', categories: '餐具、餐椅、装饰',
+    cx: 55.8, cy: 33.5,
+  },
+  {
+    id: 'room-003', name: '', icon: '🛋️', area: 16.6,
+    color: '#50BEB4', categories: '沙发、电视、玩具',
+    cx: 55.8, cy: 58.5,
+  },
+  {
+    id: 'room-002', name: '', icon: '🌙', area: 10.4,
+    color: '#DC8296', categories: '衣物、床品、书籍',
+    cx: 74.2, cy: 33.5,
+  },
+  {
+    id: 'room-007', name: '', icon: '🌿', area: 8.5,
+    color: '#64BE82', categories: '绿植、晾衣架、储物',
+    cx: 49.2, cy: 78.8,
+  },
+]
+
 const rooms = ref<Room[]>([])
 const persons = ref<Person[]>([])
 const selectedPerson = ref<string>('')
+const activeMarker = ref<string>('')
+const screenWidth = ref(375)
+
+const fpScale = computed(() => {
+  const available = screenWidth.value - 48
+  return Math.min(available / PLAN_W, 1)
+})
+
+const wrapperH = computed(() => {
+  return PLAN_H * fpScale.value
+})
 
 const roomMap = computed(() => {
   const map: Record<string, Room> = {}
@@ -167,6 +189,8 @@ function getRoomItemCount(roomId: string): number {
 }
 
 onMounted(async () => {
+  const sysInfo = uni.getSystemInfoSync()
+  screenWidth.value = sysInfo.windowWidth || 375
   await loadData()
 })
 
@@ -191,21 +215,15 @@ function goToRoom(roomId: string) {
 }
 
 function goToAddItem() {
-  uni.navigateTo({
-    url: '/pages/item/add'
-  })
+  uni.navigateTo({ url: '/pages/item/add' })
 }
 
 function goToSearch() {
-  uni.switchTab({
-    url: '/pages/item/search'
-  })
+  uni.switchTab({ url: '/pages/item/search' })
 }
 
 function goToStatistics() {
-  uni.switchTab({
-    url: '/pages/statistics/statistics'
-  })
+  uni.switchTab({ url: '/pages/statistics/statistics' })
 }
 </script>
 
@@ -313,154 +331,222 @@ function goToStatistics() {
   margin-top: 20rpx;
 }
 
-/* 户型图精确布局 */
-.floor-plan-wrapper {
+.fp-wrapper {
   background: #ffffff;
   border-radius: 20rpx;
   padding: 16rpx;
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
-}
-
-.floor-plan {
-  display: grid;
-  /* 5列: 厨房上/厨房下 | 卫生间/主卧 | 入口 | 餐厅/客厅 | 次卧 */
-  grid-template-columns: 1fr 0.8fr 0.4fr 1.2fr 0.8fr;
-  /* 4行 */
-  grid-template-rows: 1fr 0.7fr 1.3fr 0.6fr;
-  gap: 3rpx;
-  background: #f0f0f0;
-  border-radius: 16rpx;
-  overflow: hidden;
-  aspect-ratio: 1 / 1.1;
-  max-height: 70vh;
-}
-
-.room {
   display: flex;
-  flex-direction: column;
   justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  position: relative;
   overflow: hidden;
-  border-radius: 10rpx;
+}
+
+.fp-scaler {
+  transform-origin: top center;
+}
+
+.fp-container {
+  position: relative;
+  width: 1080px;
+  height: 829px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #e8e8e8;
+}
+
+.fp-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url(/static/floor-plan.jpg) center / 100% 100% no-repeat;
+}
+
+.fp-marker {
+  position: absolute;
+  z-index: 5;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+
+  .marker-pulse {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: var(--m-color);
+    opacity: 0.25;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  .marker-dot {
+    position: relative;
+    width: 18px;
+    height: 18px;
+    margin: 13px auto 0;
+    border-radius: 50%;
+    background: var(--m-color);
+    box-shadow: 0 0 8px var(--m-color), 0 0 20px color-mix(in srgb, var(--m-color) 40%, transparent);
+    transition: all 0.3s ease;
+  }
+
+  .marker-label {
+    position: absolute;
+    top: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(6px);
+    padding: 4px 10px;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+
+  .marker-icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .marker-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #333;
+    line-height: 1.3;
+  }
+
+  .marker-count {
+    font-size: 9px;
+    color: #999;
+    line-height: 1.3;
+  }
+
+  .marker-tip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    min-width: 160px;
+    pointer-events: none;
+    animation: tipIn 0.2s ease-out;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: rgba(255, 255, 255, 0.97);
+    }
+  }
+
+  &:hover,
+  &.is-active {
+    z-index: 10;
+
+    .marker-pulse {
+      animation: pulse-active 1.2s ease-in-out infinite;
+      opacity: 0.4;
+    }
+
+    .marker-dot {
+      width: 22px;
+      height: 22px;
+      margin-top: 11px;
+      box-shadow: 0 0 12px var(--m-color), 0 0 30px color-mix(in srgb, var(--m-color) 50%, transparent);
+    }
+
+    .marker-label {
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    }
+  }
 
   &:active {
-    filter: brightness(0.95);
-    transform: scale(0.98);
+    .marker-dot {
+      transform: scale(0.85);
+    }
   }
 }
 
-.room-content {
+.tip-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.tip-row {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  padding: 6rpx;
+  padding: 2px 0;
+}
+
+.tip-k {
+  font-size: 11px;
+  color: #999;
+}
+
+.tip-v {
+  font-size: 11px;
+  color: #333;
+  font-weight: 500;
+}
+
+.tip-go {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  color: #4A90D9;
   text-align: center;
 }
 
-.room-icon-text {
-  font-size: 32rpx;
-  margin-bottom: 2rpx;
+@keyframes pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0.08;
+  }
 }
 
-.room-name-text {
-  font-size: 22rpx;
-  font-weight: 600;
-  color: #ffffff;
-  line-height: 1.2;
+@keyframes pulse-active {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0.1;
+  }
 }
 
-.room-area {
-  font-size: 18rpx;
-  color: rgba(255, 255, 255, 0.85);
-  margin-top: 2rpx;
-}
-
-.room-items {
-  font-size: 16rpx;
-  color: rgba(255, 255, 255, 0.8);
-  margin-top: 2rpx;
-  background: rgba(0, 0, 0, 0.15);
-  padding: 2rpx 10rpx;
-  border-radius: 10rpx;
-}
-
-/* 厨房 L型 - 上下翻转 */
-/* 厨房上部分 */
-.kitchen-top {
-  grid-column: 1;
-  grid-row: 1;
-  background: linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%);
-  border-radius: 10rpx 10rpx 4rpx 10rpx;
-}
-
-/* 厨房下部分 (L型的短边) */
-.kitchen-bottom {
-  grid-column: 1;
-  grid-row: 2;
-  background: linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%);
-  border-radius: 4rpx 10rpx 10rpx 10rpx;
-}
-
-/* 卫生间 */
-.bathroom {
-  grid-column: 2;
-  grid-row: 2;
-  background: linear-gradient(135deg, #B8D4E3 0%, #A8C8D8 100%);
-}
-
-/* 主卧(卧室B) */
-.bedroom-b {
-  grid-column: 1 / 3;
-  grid-row: 3;
-  background: linear-gradient(135deg, #C9B8D4 0%, #B8A8C8 100%);
-}
-
-/* 阳台 */
-.balcony {
-  grid-column: 1 / -1;
-  grid-row: 4;
-  background: linear-gradient(135deg, #B8DCC8 0%, #A8D0B8 100%);
-}
-
-/* 入口/过道 */
-.hallway {
-  grid-column: 3;
-  grid-row: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f8f8f8;
-  border-radius: 8rpx;
-}
-
-.hallway-text {
-  font-size: 18rpx;
-  color: #bbbbbb;
-}
-
-/* 餐厅 */
-.dining {
-  grid-column: 4;
-  grid-row: 1;
-  background: linear-gradient(135deg, #F0D5A8 0%, #E8C898 100%);
-}
-
-/* 客厅 */
-.living {
-  grid-column: 3 / 5;
-  grid-row: 2 / 4;
-  background: linear-gradient(135deg, #D4E5F7 0%, #C8D8F0 100%);
-}
-
-/* 次卧(卧室A) */
-.bedroom-a {
-  grid-column: 5;
-  grid-row: 1 / 3;
-  background: linear-gradient(135deg, #E8D8C8 0%, #D8C8B8 100%);
+@keyframes tipIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .quick-actions {
