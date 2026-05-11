@@ -572,8 +572,9 @@ function goToStatistics() {
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
+    gap: 4px;
     white-space: nowrap;
     background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(6px);
@@ -600,6 +601,9 @@ function goToStatistics() {
     font-size: 9px;
     color: #999;
     line-height: 1.3;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 1px 4px;
+    border-radius: 4px;
   }
 
   .marker-tip {
