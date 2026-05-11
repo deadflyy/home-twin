@@ -30,11 +30,18 @@
 
     <view class="room-section">
       <view class="section-header">
-        <text class="section-title">户型图</text>
-        <text class="section-subtitle">点击光点进入房间</text>
+        <text class="section-title">房间管理</text>
+        <view class="view-toggle">
+          <view class="toggle-btn" :class="{ active: viewMode === 'plan' }" @click="viewMode = 'plan'">
+            <text class="toggle-icon">🏠</text>
+          </view>
+          <view class="toggle-btn" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">
+            <text class="toggle-icon">📋</text>
+          </view>
+        </view>
       </view>
 
-      <view class="fp-wrapper" :style="{ height: wrapperH + 'px' }">
+      <view v-if="viewMode === 'plan'" class="fp-wrapper" :style="{ height: wrapperH + 'px' }">
         <view class="fp-scaler" :style="{ transform: 'scale(' + fpScale + ')' }">
           <view class="fp-container">
             <view class="fp-bg" />
@@ -75,6 +82,37 @@
               </view>
             </view>
           </view>
+        </view>
+      </view>
+
+      <view v-else class="room-list">
+        <view
+          v-for="marker in markers"
+          :key="marker.id"
+          class="room-list-item"
+          :style="{ '--item-color': marker.color }"
+          @click="goToRoom(marker.id)"
+        >
+          <view class="list-color-bar" />
+          <view class="list-content">
+            <view class="list-main">
+              <text class="list-icon">{{ marker.icon }}</text>
+              <view class="list-info">
+                <text class="list-name">{{ marker.name }}</text>
+                <text class="list-area">{{ marker.area }}m²</text>
+              </view>
+              <view class="list-stats">
+                <view class="list-count-badge">
+                  <text class="list-count">{{ getRoomItemCount(marker.id) }}</text>
+                  <text class="list-count-label">件</text>
+                </view>
+              </view>
+            </view>
+            <view v-if="marker.categories" class="list-categories">
+              <text v-for="(cat, ci) in marker.categories.split('、')" :key="ci" class="cat-tag">{{ cat }}</text>
+            </view>
+          </view>
+          <text class="list-arrow">›</text>
         </view>
       </view>
     </view>
@@ -125,37 +163,37 @@ interface Marker {
 
 const markers: Marker[] = [
   {
-    id: 'room-005', name: '', icon: '🍳', area: 8.4,
+    id: 'room-005', name: '厨房', icon: '🍳', area: 8.4,
     color: '#E89A50', categories: '厨具、调料、餐具',
     cx: 26.8, cy: 19.8,
   },
   {
-    id: 'room-006', name: '', icon: '🚿', area: 4.4,
+    id: 'room-006', name: '卫生间', icon: '🚿', area: 4.4,
     color: '#64A0DC', categories: '洗浴用品、清洁工具',
     cx: 33.2, cy: 33.5,
   },
   {
-    id: 'room-001', name: '', icon: '🛏️', area: 13.8,
+    id: 'room-001', name: '主卧', icon: '🛏️', area: 13.8,
     color: '#A078C8', categories: '衣物、床品、收纳',
     cx: 33.2, cy: 57.5,
   },
   {
-    id: 'room-004', name: '', icon: '🍽️', area: 9.2,
+    id: 'room-004', name: '餐厅', icon: '🍽️', area: 9.2,
     color: '#D2AA5A', categories: '餐具、餐椅、装饰',
     cx: 55.8, cy: 33.5,
   },
   {
-    id: 'room-003', name: '', icon: '🛋️', area: 16.6,
+    id: 'room-003', name: '客厅', icon: '🛋️', area: 16.6,
     color: '#50BEB4', categories: '沙发、电视、玩具',
     cx: 55.8, cy: 58.5,
   },
   {
-    id: 'room-002', name: '', icon: '🌙', area: 10.4,
+    id: 'room-002', name: '次卧', icon: '🌙', area: 10.4,
     color: '#DC8296', categories: '衣物、床品、书籍',
     cx: 74.2, cy: 33.5,
   },
   {
-    id: 'room-007', name: '', icon: '🌿', area: 8.5,
+    id: 'room-007', name: '阳台', icon: '🌿', area: 8.5,
     color: '#64BE82', categories: '绿植、晾衣架、储物',
     cx: 49.2, cy: 78.8,
   },
@@ -165,6 +203,7 @@ const rooms = ref<Room[]>([])
 const persons = ref<Person[]>([])
 const selectedPerson = ref<string>('')
 const activeMarker = ref<string>('')
+const viewMode = ref<'plan' | 'list'>('plan')
 const screenWidth = ref(375)
 
 const fpScale = computed(() => {
@@ -329,6 +368,140 @@ function goToStatistics() {
 
 .room-section {
   margin-top: 20rpx;
+}
+
+.view-toggle {
+  display: flex;
+  background: #f0f1f3;
+  border-radius: 10rpx;
+  padding: 4rpx;
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 44rpx;
+  border-radius: 8rpx;
+  transition: all 0.25s ease;
+
+  &.active {
+    background: #ffffff;
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  }
+}
+
+.toggle-icon {
+  font-size: 28rpx;
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.room-list-item {
+  display: flex;
+  align-items: stretch;
+  background: #ffffff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: all 0.25s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.list-color-bar {
+  width: 6rpx;
+  background: var(--item-color);
+  flex-shrink: 0;
+}
+
+.list-content {
+  flex: 1;
+  padding: 24rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.list-main {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.list-icon {
+  font-size: 40rpx;
+}
+
+.list-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333333;
+}
+
+.list-area {
+  font-size: 22rpx;
+  color: #999999;
+  margin-top: 2rpx;
+}
+
+.list-stats {
+  flex-shrink: 0;
+}
+
+.list-count-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 2rpx;
+  background: color-mix(in srgb, var(--item-color) 12%, transparent);
+  padding: 8rpx 16rpx;
+  border-radius: 12rpx;
+}
+
+.list-count {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--item-color);
+}
+
+.list-count-label {
+  font-size: 20rpx;
+  color: #999999;
+}
+
+.list-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.cat-tag {
+  font-size: 20rpx;
+  color: #888888;
+  background: #f5f6f7;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.list-arrow {
+  display: flex;
+  align-items: center;
+  padding: 0 20rpx;
+  font-size: 36rpx;
+  color: #cccccc;
 }
 
 .fp-wrapper {
