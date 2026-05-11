@@ -6,6 +6,7 @@ import com.example.hometwin.dto.response.ApiResponse;
 import com.example.hometwin.dto.response.ItemResponse;
 import com.example.hometwin.dto.response.PageResponse;
 import com.example.hometwin.service.ItemService;
+import com.example.hometwin.service.MimoService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,9 @@ public class ItemController {
 
     @Autowired
     private ItemService itemService;
+
+    @Autowired
+    private MimoService mimoService;
 
     @GetMapping
     public ApiResponse<PageResponse<ItemResponse>> getItems(
@@ -73,5 +77,19 @@ public class ItemController {
     public ApiResponse<Map<String, Object>> getStatistics() {
         Map<String, Object> stats = itemService.getStatistics();
         return ApiResponse.success(stats);
+    }
+
+    @PostMapping("/recognize")
+    public ApiResponse<Map<String, Object>> recognizeItem(@RequestBody Map<String, String> request) {
+        String imageBase64 = request.get("image");
+        if (imageBase64 == null || imageBase64.isEmpty()) {
+            return ApiResponse.error("请提供图片数据");
+        }
+        try {
+            Map<String, Object> result = mimoService.recognizeItem(imageBase64);
+            return ApiResponse.success(result);
+        } catch (Exception e) {
+            return ApiResponse.error("识别失败: " + e.getMessage());
+        }
     }
 }

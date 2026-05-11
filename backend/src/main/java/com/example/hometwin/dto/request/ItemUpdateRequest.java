@@ -1,13 +1,7 @@
 package com.example.hometwin.dto.request;
 
 import jakarta.validation.constraints.Size;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class ItemUpdateRequest {
 
     @Size(max = 100, message = "物品名称不能超过100个字符")
@@ -24,4 +18,64 @@ public class ItemUpdateRequest {
     private String location;
 
     private String photo;
+
+    public ItemUpdateRequest() {
+    }
+
+    public ItemUpdateRequest(String name, String description, String roomId, String personId, String location, String photo) {
+        this.name = name;
+        this.description = description;
+        this.roomId = roomId;
+        this.personId = personId;
+        this.location = location;
+        this.photo = photo;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getRoomId() {
+        return roomId;
+    }
+
+    public void setRoomId(String roomId) {
+        this.roomId = roomId;
+    }
+
+    public String getPersonId() {
+        return personId;
+    }
+
+    public void setPersonId(String personId) {
+        this.personId = personId;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getPhoto() {
+        return photo;
+    }
+
+    public void setPhoto(String photo) {
+        this.photo = photo;
+    }
 }

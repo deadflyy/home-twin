@@ -9,10 +9,18 @@
           <text class="upload-icon">📷</text>
           <text class="upload-text">点击拍照或上传照片</text>
         </view>
-        <image v-else :src="photo" class="preview-photo" mode="aspectFill" />
+        <view v-else class="photo-wrapper">
+          <image :src="photo" class="preview-photo" mode="aspectFill" />
+          <view v-if="recognizing" class="recognizing-overlay">
+            <view class="recognizing-spinner"></view>
+            <text class="recognizing-text">AI 识别中...</text>
+          </view>
+        </view>
       </view>
       <view class="upload-tips">
-        <text class="tips-text">支持拍照或从相册选择，系统将自动识别物品</text>
+        <text v-if="recognizing" class="tips-text tips-loading">🤖 AI 正在分析物品信息，请稍候...</text>
+        <text v-else-if="recognized" class="tips-text tips-success">✅ AI 已识别完成，可手动修正以下信息</text>
+        <text v-else class="tips-text">支持拍照或从相册选择，系统将自动识别物品</text>
       </view>
     </view>
 
@@ -24,6 +32,16 @@
           class="form-input" 
           placeholder="请输入物品名称"
           maxlength="100"
+        />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">物品类别</text>
+        <input 
+          v-model="form.category" 
+          class="form-input" 
+          placeholder="如：玩具、电子产品、衣物"
+          maxlength="50"
         />
       </view>
 
@@ -124,10 +142,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getRooms, getPersons, createItem, type Room, type Person } from '@/api'
+import { recognizeItem, imageFilePathToBase64, type RecognizeResult } from '@/utils/mimo'
 
 const rooms = ref<Room[]>([])
 const persons = ref<Person[]>([])
 const photo = ref('')
+const recognizing = ref(false)
+const recognized = ref(false)
 const showRoomPicker = ref(false)
 const showPersonPicker = ref(false)
 
@@ -136,7 +157,8 @@ const form = ref({
   roomId: '',
   personId: '',
   location: '',
-  description: ''
+  description: '',
+  category: ''
 })
 
 const selectedRoomName = computed(() => {
@@ -148,6 +170,48 @@ const selectedPersonName = computed(() => {
   if (!form.value.personId) return ''
   return persons.value.find(p => p.id === form.value.personId)?.name || ''
 })
+
+const ROOM_KEYWORDS: Record<string, string[]> = {
+  '主卧': ['主卧', '卧室B', '父母'],
+  '次卧': ['次卧', '卧室A', '小孩', '儿童'],
+  '客厅': ['客厅'],
+  '餐厅': ['餐厅'],
+  '厨房': ['厨房'],
+  '卫生间': ['卫生间', '浴室', '洗手间'],
+  '阳台': ['阳台']
+}
+
+const PERSON_KEYWORDS: Record<string, string[]> = {
+  '小女孩': ['小孩', '儿童', '女孩', '小朋友', '女儿', '小孩'],
+  '父亲': ['父亲', '爸爸', '男人', '男性'],
+  '母亲': ['母亲', '妈妈', '女人', '女性'],
+  '外婆': ['外婆', '姥姥', '老人', '老年']
+}
+
+function matchRoomId(hint: string): string | undefined {
+  if (!hint) return undefined
+  for (const [roomName, keywords] of Object.entries(ROOM_KEYWORDS)) {
+    if (hint.includes(roomName) || keywords.some(k => hint.includes(k))) {
+      const room = rooms.value.find(r => r.name.includes(roomName))
+      if (room) return room.id
+    }
+  }
+  const matched = rooms.value.find(r => hint.includes(r.name))
+  return matched?.id
+}
+
+function matchPersonId(hint: string): string | undefined {
+  if (!hint) return undefined
+  if (hint.includes('共用') || hint.includes('通用')) return undefined
+  for (const [personName, keywords] of Object.entries(PERSON_KEYWORDS)) {
+    if (hint.includes(personName) || keywords.some(k => hint.includes(k))) {
+      const person = persons.value.find(p => p.name.includes(personName))
+      if (person) return person.id
+    }
+  }
+  const matched = persons.value.find(p => hint.includes(p.name))
+  return matched?.id
+}
 
 onLoad((options) => {
   if (options?.roomId) {
@@ -181,10 +245,46 @@ function chooseImage() {
     count: 1,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
-    success: (res) => {
-      photo.value = res.tempFilePaths[0]
+    success: async (res) => {
+      const filePath = res.tempFilePaths[0]
+      photo.value = filePath
+      recognized.value = false
+      await startRecognize(filePath)
     }
   })
+}
+
+async function startRecognize(filePath: string) {
+  recognizing.value = true
+  try {
+    const base64 = await imageFilePathToBase64(filePath)
+    const result = await recognizeItem(base64)
+    fillFormFromResult(result)
+    recognized.value = true
+    uni.showToast({ title: '识别完成', icon: 'success' })
+  } catch (error) {
+    console.error('AI 识别失败:', error)
+    uni.showToast({ title: '识别失败，请手动填写', icon: 'none' })
+  } finally {
+    recognizing.value = false
+  }
+}
+
+function fillFormFromResult(result: RecognizeResult) {
+  if (result.name) form.value.name = result.name
+  if (result.description) form.value.description = result.description
+  if (result.category) form.value.category = result.category
+  if (result.locationHint) form.value.location = result.locationHint
+
+  if (!form.value.roomId && result.locationHint) {
+    const matchedRoomId = matchRoomId(result.locationHint)
+    if (matchedRoomId) form.value.roomId = matchedRoomId
+  }
+
+  if (!form.value.personId && result.personHint) {
+    const matchedPersonId = matchPersonId(result.personHint)
+    if (matchedPersonId) form.value.personId = matchedPersonId
+  }
 }
 
 function selectRoom(room: Room) {
@@ -270,6 +370,12 @@ async function submitForm() {
   background: #f8f9fa;
 }
 
+.photo-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
 .upload-placeholder {
   width: 100%;
   height: 100%;
@@ -294,6 +400,38 @@ async function submitForm() {
   height: 100%;
 }
 
+.recognizing-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.recognizing-spinner {
+  width: 64rpx;
+  height: 64rpx;
+  border: 6rpx solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.recognizing-text {
+  font-size: 26rpx;
+  color: #ffffff;
+}
+
 .upload-tips {
   margin-top: 16rpx;
 }
@@ -301,6 +439,14 @@ async function submitForm() {
 .tips-text {
   font-size: 24rpx;
   color: #999999;
+}
+
+.tips-loading {
+  color: #4A90D9;
+}
+
+.tips-success {
+  color: #67C23A;
 }
 
 .form-section {

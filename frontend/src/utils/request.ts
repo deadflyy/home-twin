@@ -24,6 +24,15 @@ export async function request<T>(
     uni.request({
       ...options,
       success: (res) => {
+        if (res.statusCode !== 200) {
+          let msg = `请求失败 (${res.statusCode})`
+          try {
+            const body = res.data as ApiResponse<T>
+            if (body && body.message) msg = body.message
+          } catch {}
+          reject(new Error(msg))
+          return
+        }
         const response = res.data as ApiResponse<T>
         if (response.code === 200) {
           resolve(response)
