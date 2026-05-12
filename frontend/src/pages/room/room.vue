@@ -32,21 +32,15 @@
     </view>
 
     <view v-if="items.length > 0" class="item-list">
-      <view 
-        v-for="item in items" 
-        :key="item.id" 
-        class="item-card"
-        @click="goToDetail(item.id)"
-      >
-        <view class="item-photo-wrap">
-          <image 
-            v-if="item.photo" 
-            :src="item.photo" 
-            class="item-photo"
-            mode="aspectFill"
-          />
-          <view v-else class="item-placeholder">
-            <text class="placeholder-icon">📦</text>
+<view
+            :key="person.id" 
+            class="filter-item"
+            :class="{ active: selectedPerson === person.id }"
+            @click="selectPerson(person.id)"
+          >
+            <image v-if="person.avatar && person.avatar.startsWith('http')" :src="person.avatar" class="filter-avatar" mode="aspectFill" />
+            <text v-else class="filter-emoji">{{ person.avatar || '👤' }}</text>
+            <text>{{ person.name }}</text>
           </view>
         </view>
         <view class="item-info">
@@ -227,12 +221,26 @@ function goToDetail(itemId: string) {
   color: #666666;
   border: 2rpx solid transparent;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
 
   &.active {
     background: #e8f0fe;
     color: #4A90D9;
     border-color: #4A90D9;
   }
+}
+
+.filter-avatar {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 8rpx;
+  object-fit: cover;
+}
+
+.filter-emoji {
+  font-size: 32rpx;
 }
 
 .add-btn {

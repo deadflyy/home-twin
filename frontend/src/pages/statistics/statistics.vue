@@ -70,7 +70,8 @@
           class="stats-row person-row"
         >
           <view class="stats-left">
-            <text class="person-avatar">{{ person.avatar }}</text>
+            <image v-if="person.avatar && person.avatar.startsWith('http')" :src="person.avatar" class="person-avatar-img" mode="aspectFill" />
+            <text v-else class="person-avatar">{{ person.avatar || '👤' }}</text>
             <text class="person-name">{{ person.name }}</text>
           </view>
           <view class="stats-right">
@@ -376,6 +377,14 @@ function goToAddItem() {
 .person-avatar {
   font-size: 44rpx;
   margin-right: 16rpx;
+}
+
+.person-avatar-img {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 12rpx;
+  margin-right: 16rpx;
+  object-fit: cover;
 }
 
 .person-name {

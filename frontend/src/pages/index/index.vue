@@ -7,9 +7,10 @@
       </view>
     </view>
 
-    <view class="person-section card">
+    <view class="person-section card" @click="goToPersonList">
       <view class="section-header">
         <text class="section-title">人物分类</text>
+        <text class="section-subtitle">点击管理 →</text>
       </view>
       <scroll-view scroll-x class="person-scroll">
         <view class="person-list">
@@ -19,8 +20,10 @@
             class="person-card"
             :class="{ active: selectedPerson === person.id }"
             @click="selectPerson(person.id)"
+            @longpress="goToPersonList"
           >
-            <text class="person-avatar">{{ person.avatar }}</text>
+            <image v-if="person.avatar && person.avatar.startsWith('http')" :src="person.avatar" class="person-avatar" mode="aspectFill" />
+            <text v-else class="person-avatar-text">{{ person.avatar || '👤' }}</text>
             <text class="person-name">{{ person.name }}</text>
             <text class="person-count">{{ person.itemCount }}件</text>
           </view>
@@ -264,6 +267,10 @@ function goToSearch() {
 function goToStatistics() {
   uni.switchTab({ url: '/pages/statistics/statistics' })
 }
+
+function goToPersonList() {
+  uni.navigateTo({ url: '/pages/person/list' })
+}
 </script>
 
 <style lang="scss" scoped>
@@ -305,6 +312,11 @@ function goToStatistics() {
 
 .person-section {
   margin-top: -30rpx;
+  cursor: pointer;
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
 }
 
 .section-header {
@@ -351,6 +363,14 @@ function goToStatistics() {
 }
 
 .person-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 16rpx;
+  margin-bottom: 6rpx;
+  object-fit: cover;
+}
+
+.person-avatar-text {
   font-size: 48rpx;
   margin-bottom: 6rpx;
 }

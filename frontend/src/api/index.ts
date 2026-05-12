@@ -16,6 +16,18 @@ export interface Person {
   itemCount: number
 }
 
+export interface PersonCreateRequest {
+  name: string
+  relation?: string
+  avatar?: string
+}
+
+export interface PersonUpdateRequest {
+  name?: string
+  relation?: string
+  avatar?: string
+}
+
 export interface Item {
   id: string
   name: string
@@ -64,6 +76,20 @@ export async function getPersons(): Promise<Person[]> {
 export async function getPersonById(id: string): Promise<Person> {
   const res = await get<Person>(`/persons/${id}`)
   return res.data
+}
+
+export async function createPerson(data: PersonCreateRequest): Promise<Person> {
+  const res = await post<Person>('/persons', data)
+  return res.data
+}
+
+export async function updatePerson(id: string, data: PersonUpdateRequest): Promise<Person> {
+  const res = await put<Person>(`/persons/${id}`, data)
+  return res.data
+}
+
+export async function deletePerson(id: string): Promise<void> {
+  await del(`/persons/${id}`)
 }
 
 export async function getItems(

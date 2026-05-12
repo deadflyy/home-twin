@@ -7,6 +7,12 @@
       }
     },
     {
+      "path": "pages/person/list",
+      "style": {
+        "navigationBarTitleText": "人物管理"
+      }
+    },
+    {
       "path": "pages/room/room",
       "style": {
         "navigationBarTitleText": "房间详情"
